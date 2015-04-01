@@ -7,11 +7,11 @@
 
     <!-- Home Activity -->
     <string name="home_p_title">En attente de transactions…</string>
-    <string name="home_p_subtitle">Les transactions apparaîtront automatiquement quand une validation manuelle est requise.</string>
+    <string name="home_p_subtitle">Les transactions apparaîtront automatiquement quand une validation manuelle sera requise.</string>
     <string name="home_p_action">LEDGER WALLET ASSOCIÉS</string>
     <string name="home_p_bottom">Besoin d\'aide? Visitez notre centre d\'aide.</string>
 
-    <string name="home_np_title">Aucun Ledger Wallet associé</string>
+    <string name="home_np_title">Aucun Ledger Wallet associée</string>
     <string name="home_np_subtitle">Pour activer le second facteur d\'authentification mobile, associez votre Ledger Wallet avec ce smartphone.</string>
     <string name="home_np_action">ASSOCIER UN LEDGER WALLET</string>
     <string name="home_np_bottom">Besoin d\'aide? Visitez notre centre d\'aide.</string>
