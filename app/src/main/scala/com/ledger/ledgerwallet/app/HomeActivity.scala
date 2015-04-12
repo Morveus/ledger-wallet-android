@@ -47,12 +47,16 @@ import com.ledger.ledgerwallet.utils.{AndroidUtils, GooglePlayServiceHelper, TR}
 import com.ledger.ledgerwallet.widget.TextView
 import com.ledger.ledgerwallet.utils.AndroidImplicitConversions._
 
+import com.getpebble.android.kit.PebbleKit;
+import com.getpebble.android.kit.PebbleKit.PebbleDataReceiver;
+import com.getpebble.android.kit.util.PebbleDictionary;
+
 import scala.util.{Failure, Success}
 
 class HomeActivity extends BaseActivity {
 
-  private static final UUID WATCHAPP_UUID = UUID.fromString("70386c07-96ba-4d04-8d9d-c6886147776a");
-  private static final String WATCHAPP_FILENAME = "ledger-pebble.pbw";
+  lazy val WATCHAPP_UUID = UUID.fromString("70386c07-96ba-4d04-8d9d-c6886147776a")
+  lazy val WATCHAPP_FILENAME = "ledger-pebble.pbw"
 
   lazy val api = IncomingTransactionAPI.defaultInstance(context)
 
@@ -136,6 +140,26 @@ class HomeActivity extends BaseActivity {
       .setContentText(TR(R.string.pairing_success_dialog_content).as[String].format(dongleName))
       .setIcon(R.drawable.ic_big_green_success)
       .create().show(getSupportFragmentManager, "SuccessDialog")
+  }
+
+  private[this] def sideloadInstall(ctx: Context, assetFilename: String) {
+    try {
+      val intent = new Intent(Intent.ACTION_VIEW)
+      val file = new File(ctx.getExternalFilesDir(null), assetFilename)
+      val is = ctx.getResources.getAssets.open(assetFilename)
+      val os = new FileOutputStream(file)
+      val pbw = Array.ofDim[Byte](is.available())
+      is.read(pbw)
+      os.write(pbw)
+      is.close()
+      os.close()
+      intent.setDataAndType(Uri.fromFile(file), "application/pbw")
+      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+      ctx.startActivity(intent)
+    } catch {
+      case e: IOException => Toast.makeText(ctx, "App install failed: " + e.getLocalizedMessage, Toast.LENGTH_LONG)
+        .show()
+    }
   }
 
 }
