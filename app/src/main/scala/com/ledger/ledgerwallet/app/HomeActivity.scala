@@ -51,6 +51,9 @@ import scala.util.{Failure, Success}
 
 class HomeActivity extends BaseActivity {
 
+  private static final UUID WATCHAPP_UUID = UUID.fromString("70386c07-96ba-4d04-8d9d-c6886147776a");
+  private static final String WATCHAPP_FILENAME = "ledger-pebble.pbw";
+
   lazy val api = IncomingTransactionAPI.defaultInstance(context)
 
   override def onCreate(savedInstanceState: Bundle): Unit = {

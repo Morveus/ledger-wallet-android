@@ -55,6 +55,7 @@ dependencies {
     compile 'com.madgag.spongycastle:pkix:1.51.0.0'
     compile 'com.madgag.spongycastle:pg:1.51.0.0'
     compile 'com.google.android.gms:play-services:3.1.+'
+    compile 'com.getpebble:pebblekit:3.0.0'
 
     androidTestCompile 'com.android.support:multidex-instrumentation:1.0.1'
 }
@@ -74,4 +75,9 @@ afterEvaluate {
         dx.additionalParameters += "--multi-dex"
         dx.additionalParameters += "--main-dex-list=$rootDir/main-dex-list.txt".toString()
     }
+}
+
+repositories {
+  mavenCentral()
+  maven { url "https://oss.sonatype.org/content/groups/public/" }
 }
