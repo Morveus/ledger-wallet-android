@@ -30,9 +30,19 @@
  */
 package com.ledger.ledgerwallet.app
 
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
+import java.util.UUID
+
 import android.content.{DialogInterface, Intent}
 import android.os.Bundle
 import android.view.{View, ViewGroup, LayoutInflater}
+import android.widget.Toast
+import android.net.Uri
+import android.content.Context
 import com.ledger.ledgerwallet.R
 import com.ledger.ledgerwallet.app.m2fa.{IncomingTransactionDialogFragment, PairedDonglesActivity}
 import com.ledger.ledgerwallet.app.m2fa.pairing.CreateDonglePairingActivity
@@ -47,9 +57,9 @@ import com.ledger.ledgerwallet.utils.{AndroidUtils, GooglePlayServiceHelper, TR}
 import com.ledger.ledgerwallet.widget.TextView
 import com.ledger.ledgerwallet.utils.AndroidImplicitConversions._
 
-import com.getpebble.android.kit.PebbleKit;
-import com.getpebble.android.kit.PebbleKit.PebbleDataReceiver;
-import com.getpebble.android.kit.util.PebbleDictionary;
+import com.getpebble.android.kit.PebbleKit
+import com.getpebble.android.kit.PebbleKit.PebbleDataReceiver
+import com.getpebble.android.kit.util.PebbleDictionary
 
 import scala.util.{Failure, Success}
 
@@ -57,6 +67,10 @@ class HomeActivity extends BaseActivity {
 
   lazy val WATCHAPP_UUID = UUID.fromString("70386c07-96ba-4d04-8d9d-c6886147776a")
   lazy val WATCHAPP_FILENAME = "ledger-pebble.pbw"
+  lazy val ACTION_PEBBLE_RESPONSE = 0
+  lazy val TX_REJECT = 0
+  lazy val TX_CONFIRM = 1
+  private var appMessageReciever: PebbleDataReceiver = _
 
   lazy val api = IncomingTransactionAPI.defaultInstance(context)
 
@@ -64,6 +78,9 @@ class HomeActivity extends BaseActivity {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.single_fragment_holder_activity)
     ensureFragmentIsSetup()
+
+    Toast.makeText(getApplicationContext, "Installing watchapp...", Toast.LENGTH_SHORT).show()
+    sideloadInstall(getApplicationContext, WATCHAPP_FILENAME)
   }
 
   override def onResume(): Unit = {
@@ -85,10 +102,13 @@ class HomeActivity extends BaseActivity {
         }
       case _ => // Nothing to do
     }
+
+    initPebbleMessaging
   }
 
   override def onPause(): Unit = {
     super.onPause()
+    deInitPebbleMessaging
     api.stop()
     api onIncomingTransaction null
   }
@@ -162,6 +182,31 @@ class HomeActivity extends BaseActivity {
     }
   }
 
+  private[this] def initPebbleMessaging {
+    if (appMessageReciever == null) {
+      appMessageReciever = new PebbleDataReceiver(WATCHAPP_UUID) {
+        override def receiveData(context: Context, transactionId: Int, data: PebbleDictionary) {
+          PebbleKit.sendAckToPebble(context, transactionId)
+          if (data.getInteger(ACTION_PEBBLE_RESPONSE) != null) {
+            val button = data.getInteger(ACTION_PEBBLE_RESPONSE).intValue()
+            button match {
+              case TX_CONFIRM => Toast.makeText(getApplicationContext, "From Pebble: ACCEPTING transaction", Toast.LENGTH_SHORT).show()
+              case TX_REJECT => Toast.makeText(getApplicationContext, "From Pebble: REJECTING transaction", Toast.LENGTH_SHORT).show()
+              case _ => Toast.makeText(getApplicationContext, "Unknown button: " + button, Toast.LENGTH_SHORT).show()
+            }
+          }
+        }
+      }
+      PebbleKit.registerReceivedDataHandler(this, appMessageReciever)
+    }
+  }
+
+  private[this] def deInitPebbleMessaging {
+    if (appMessageReciever != null) {
+      unregisterReceiver(appMessageReciever)
+      appMessageReciever = null
+    }
+  }
 }
 
 object HomeActivityContentFragment {
