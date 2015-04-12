@@ -70,6 +70,9 @@ class HomeActivity extends BaseActivity {
   lazy val ACTION_PEBBLE_RESPONSE = 0
   lazy val TX_REJECT = 0
   lazy val TX_CONFIRM = 1
+  lazy val TRANSACTION_ADDRESS = 1
+  lazy val TRANSACTION_AMOUNT = 2
+  lazy val TRANSATION_DATETIME = 3
   private var appMessageReciever: PebbleDataReceiver = _
 
   lazy val api = IncomingTransactionAPI.defaultInstance(context)
@@ -183,6 +186,7 @@ class HomeActivity extends BaseActivity {
   }
 
   private[this] def initPebbleMessaging {
+    PebbleKit.startAppOnPebble(getApplicationContext(), WATCHAPP_UUID);
     if (appMessageReciever == null) {
       appMessageReciever = new PebbleDataReceiver(WATCHAPP_UUID) {
         override def receiveData(context: Context, transactionId: Int, data: PebbleDictionary) {
@@ -199,6 +203,8 @@ class HomeActivity extends BaseActivity {
       }
       PebbleKit.registerReceivedDataHandler(this, appMessageReciever)
     }
+
+    sendToPebble
   }
 
   private[this] def deInitPebbleMessaging {
@@ -206,6 +212,15 @@ class HomeActivity extends BaseActivity {
       unregisterReceiver(appMessageReciever)
       appMessageReciever = null
     }
+  }
+
+  private[this] def sendToPebble {
+    var out = new PebbleDictionary()
+
+    out.addString(TRANSACTION_ADDRESS, "1DS8ZwrXhsUF6jsjTSV2uhE1XvZGn8L1R3")
+    out.addString(TRANSACTION_AMOUNT, "3.1415926")
+    out.addString(TRANSATION_DATETIME, "23/05/88 (23:27)")
+    PebbleKit.sendDataToPebble(getApplicationContext(), WATCHAPP_UUID, out)
   }
 }
 
