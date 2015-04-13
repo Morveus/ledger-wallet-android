@@ -1,9 +1,9 @@
 /**
  *
- * HomeActivity
+ * Pebble Class
  * Ledger wallet
  *
- * Created by Pierre Pollastri on 10/02/15.
+ * Created by David Balland on 13/04/15.
  *
  * The MIT License (MIT)
  *
@@ -30,32 +30,46 @@
  */
 package com.ledger.ledgerwallet.app
 
+import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
+import java.util.UUID
+
 import android.content.{DialogInterface, Intent}
 import android.os.Bundle
 import android.view.{View, ViewGroup, LayoutInflater}
-import com.ledger.ledgerwallet.R
-import com.ledger.ledgerwallet.app.m2fa.{IncomingTransactionDialogFragment, PairedDonglesActivity}
-import com.ledger.ledgerwallet.app.m2fa.pairing.CreateDonglePairingActivity
-import com.ledger.ledgerwallet.base.{BigIconAlertDialog, BaseFragment, BaseActivity}
-import com.ledger.ledgerwallet.bitcoin.AmountFormatter
-import com.ledger.ledgerwallet.models.PairedDongle
-import com.ledger.ledgerwallet.remote.HttpClient
-import com.ledger.ledgerwallet.remote.api.TeeAPI
-import com.ledger.ledgerwallet.remote.api.m2fa.{GcmAPI, IncomingTransactionAPI}
-import com.ledger.ledgerwallet.utils.logs.Logger
-import com.ledger.ledgerwallet.utils.{AndroidUtils, GooglePlayServiceHelper, TR}
-import com.ledger.ledgerwallet.widget.TextView
-import com.ledger.ledgerwallet.utils.AndroidImplicitConversions._
+import android.widget.Toast
+import android.net.Uri
+import android.content.Context
+
+import com.getpebble.android.kit.PebbleKit
+import com.getpebble.android.kit.PebbleKit.PebbleDataReceiver
+import com.getpebble.android.kit.util.PebbleDictionary
 
 import scala.util.{Failure, Success}
 
 class HomeActivity extends BaseActivity {
+
+  lazy val WATCHAPP_UUID = UUID.fromString("70386c07-96ba-4d04-8d9d-c6886147776a")
+  lazy val WATCHAPP_FILENAME = "ledger-pebble.pbw"
+  lazy val ACTION_PEBBLE_RESPONSE = 0
+  lazy val TX_REJECT = 0
+  lazy val TX_CONFIRM = 1
+  lazy val TRANSACTION_ADDRESS = 1
+  lazy val TRANSACTION_AMOUNT = 2
+  lazy val TRANSATION_DATETIME = 3
+  private var appMessageReciever: PebbleDataReceiver = _
+
   lazy val api = IncomingTransactionAPI.defaultInstance(context)
 
   override def onCreate(savedInstanceState: Bundle): Unit = {
     super.onCreate(savedInstanceState)
     setContentView(R.layout.single_fragment_holder_activity)
     ensureFragmentIsSetup()
+
+    // sideloadInstall(getApplicationContext, WATCHAPP_FILENAME)
   }
 
   override def onResume(): Unit = {
@@ -77,10 +91,13 @@ class HomeActivity extends BaseActivity {
         }
       case _ => // Nothing to do
     }
+
+    initPebbleMessaging
   }
 
   override def onPause(): Unit = {
     super.onPause()
+    deInitPebbleMessaging
     api.stop()
     api onIncomingTransaction null
   }
