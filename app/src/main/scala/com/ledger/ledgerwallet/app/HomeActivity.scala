@@ -46,10 +46,12 @@ import com.ledger.ledgerwallet.utils.logs.Logger
 import com.ledger.ledgerwallet.utils.{AndroidUtils, GooglePlayServiceHelper, TR}
 import com.ledger.ledgerwallet.widget.TextView
 import com.ledger.ledgerwallet.utils.AndroidImplicitConversions._
+import com.ledger.ledgerwallet.pebble.Pebble
 
 import scala.util.{Failure, Success}
 
 class HomeActivity extends BaseActivity {
+
   lazy val api = IncomingTransactionAPI.defaultInstance(context)
 
   override def onCreate(savedInstanceState: Bundle): Unit = {
@@ -134,64 +136,6 @@ class HomeActivity extends BaseActivity {
       .create().show(getSupportFragmentManager, "SuccessDialog")
   }
 
-  private[this] def sideloadInstall(ctx: Context, assetFilename: String) {
-    try {
-      Toast.makeText(getApplicationContext, "Installing watchapp...", Toast.LENGTH_SHORT).show()
-      val intent = new Intent(Intent.ACTION_VIEW)
-      val file = new File(ctx.getExternalFilesDir(null), assetFilename)
-      val is = ctx.getResources.getAssets.open(assetFilename)
-      val os = new FileOutputStream(file)
-      val pbw = Array.ofDim[Byte](is.available())
-      is.read(pbw)
-      os.write(pbw)
-      is.close()
-      os.close()
-      intent.setDataAndType(Uri.fromFile(file), "application/pbw")
-      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-      ctx.startActivity(intent)
-    } catch {
-      case e: IOException => Toast.makeText(ctx, "App install failed: " + e.getLocalizedMessage, Toast.LENGTH_LONG)
-        .show()
-    }
-  }
-
-  private[this] def initPebbleMessaging {
-    PebbleKit.startAppOnPebble(getApplicationContext(), WATCHAPP_UUID);
-    if (appMessageReciever == null) {
-      appMessageReciever = new PebbleDataReceiver(WATCHAPP_UUID) {
-        override def receiveData(context: Context, transactionId: Int, data: PebbleDictionary) {
-          PebbleKit.sendAckToPebble(context, transactionId)
-          if (data.getInteger(ACTION_PEBBLE_RESPONSE) != null) {
-            val button = data.getInteger(ACTION_PEBBLE_RESPONSE).intValue()
-            button match {
-              case TX_CONFIRM => Toast.makeText(getApplicationContext, "From Pebble: ACCEPTING transaction", Toast.LENGTH_SHORT).show()
-              case TX_REJECT => Toast.makeText(getApplicationContext, "From Pebble: REJECTING transaction", Toast.LENGTH_SHORT).show()
-              case _ => Toast.makeText(getApplicationContext, "Unknown button: " + button, Toast.LENGTH_SHORT).show()
-            }
-          }
-        }
-      }
-      PebbleKit.registerReceivedDataHandler(this, appMessageReciever)
-    }
-
-    sendToPebble
-  }
-
-  private[this] def deInitPebbleMessaging {
-    if (appMessageReciever != null) {
-      unregisterReceiver(appMessageReciever)
-      appMessageReciever = null
-    }
-  }
-
-  private[this] def sendToPebble {
-    var out = new PebbleDictionary()
-
-    out.addString(TRANSACTION_ADDRESS, "1DS8ZwrXhsUF6jsjTSV2uhE1XvZGn8L1R3")
-    out.addString(TRANSACTION_AMOUNT, "3.1415926")
-    out.addString(TRANSATION_DATETIME, "23/05/88 (23:27)")
-    PebbleKit.sendDataToPebble(getApplicationContext(), WATCHAPP_UUID, out)
-  }
 }
 
 object HomeActivityContentFragment {
