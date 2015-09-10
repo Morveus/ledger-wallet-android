@@ -53,7 +53,7 @@ import scala.util.{Failure, Success}
 class Pebble (context: android.content.Context) {
   private var c = context
 
-  lazy val WATCHAPP_UUID = UUID.fromString("70386c07-96ba-4d04-8d9d-c6886147776a")
+  lazy val PEBBLE_APP_UUID = UUID.fromString("70386c07-96ba-4d04-8d9d-c6886147776a")
   lazy val WATCHAPP_FILENAME = "ledger-pebble.pbw"
   lazy val ACTION_PEBBLE_RESPONSE = 0
   lazy val TX_REJECT = 0
@@ -85,9 +85,9 @@ class Pebble (context: android.content.Context) {
   }
 
   def initPebbleMessaging {
-    PebbleKit.startAppOnPebble(context, WATCHAPP_UUID);
+    PebbleKit.startAppOnPebble(c, PEBBLE_APP_UUID);
     if (appMessageReciever == null) {
-      appMessageReciever = new PebbleDataReceiver(WATCHAPP_UUID) {
+      appMessageReciever = new PebbleDataReceiver(PEBBLE_APP_UUID) {
         override def receiveData(context: Context, transactionId: Int, data: PebbleDictionary) {
           PebbleKit.sendAckToPebble(context, transactionId)
           if (data.getInteger(ACTION_PEBBLE_RESPONSE) != null) {
@@ -100,25 +100,33 @@ class Pebble (context: android.content.Context) {
           }
         }
       }
-      PebbleKit.registerReceivedDataHandler(context, appMessageReciever)
+      PebbleKit.registerReceivedDataHandler(c, appMessageReciever)
     }
-
-    sendToPebble("18gLLBHXBAFFtgQo7mVJAvLsv3rGMdh8po", "3.14569", "23/05/88 (23:27)")
   }
 
   def deInitPebbleMessaging {
     if (appMessageReciever != null) {
-      context.unregisterReceiver(appMessageReciever)
+      c.unregisterReceiver(appMessageReciever)
       appMessageReciever = null
     }
   }
 
+  // def isWatchConnected: bool = {
+  //   return true
+  // }
+
+  def startOnPebble {
+    PebbleKit.startAppOnPebble(c, PEBBLE_APP_UUID)
+  }
+
   def sendToPebble(address: String, amount: String, datetime: String) {
+    Toast.makeText(c, "Waking Pebble up...", Toast.LENGTH_SHORT).show()
     var out = new PebbleDictionary()
 
     out.addString(TRANSACTION_ADDRESS, address)
     out.addString(TRANSACTION_AMOUNT, amount)
     out.addString(TRANSATION_DATETIME, datetime)
-    PebbleKit.sendDataToPebble(context, WATCHAPP_UUID, out)
+    Toast.makeText(c, "Sending notification to Pebble!", Toast.LENGTH_SHORT).show()
+    PebbleKit.sendDataToPebble(c, PEBBLE_APP_UUID, out)
   }
 }

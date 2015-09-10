@@ -39,10 +39,12 @@ import com.google.android.gms.gcm.GoogleCloudMessaging
 import com.ledger.ledgerwallet.R
 import com.ledger.ledgerwallet.utils.{AndroidUtils, TR}
 
+import com.ledger.ledgerwallet.pebble.Pebble
+
 class GcmIntentService extends IntentService("Ledger Wallet GCM Service") {
 
   implicit val context = this
-
+  lazy val pebble = new Pebble(context)
 
   override def onHandleIntent(intent: Intent): Unit = {
     val extras = intent.getExtras
@@ -75,6 +77,12 @@ class GcmIntentService extends IntentService("Ledger Wallet GCM Service") {
       .setVibrate(Array[Long](0, 500, 100, 500))
       .build()
     manager.notify(GcmIntentService.IncomingTransactionNotificationId, notification)
+
+    Toast.makeText(context, "Unknown button: " + button, Toast.LENGTH_SHORT).show()
+
+    pebble.startOnPebble
+    pebble.initPebbleMessaging
+    pebble.sendToPebble("18gLLBHXBAFFtgQo7mVJAvLsv3rGMdh8po", "3.14569", "23/05/88 (23:27)")
   }
 
 }
